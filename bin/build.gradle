@@ -1,0 +1,87 @@
+plugins {
+    id 'java'
+    id 'se.thinkcode.cucumber-runner' version '0.0.8'
+    id 'pmd'
+}
+
+ext {
+    junitVersion = '5.7.2'
+    cucumberVersion = '6.10.4'
+}
+
+apply plugin: 'java'
+apply plugin: 'application'
+
+repositories {
+    mavenCentral()
+}
+
+test {
+    reports {
+        html.enabled = true
+    }
+
+    // Enable JUnit 5 (Gradle 4.6+).
+    useJUnitPlatform()
+
+    // Always run tests, even when nothing changed.
+    //dependsOn 'cleanTest'
+
+    // Show test results.
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
+dependencies {
+  compileOnly 'org.projectlombok:lombok:1.18.22'
+  annotationProcessor 'org.projectlombok:lombok:1.18.22'
+
+  testCompileOnly 'org.projectlombok:lombok:1.18.22'
+  testAnnotationProcessor 'org.projectlombok:lombok:1.18.22'
+
+  // https://mvnrepository.com/artifact/org.springframework/spring-context
+  implementation 'org.springframework:spring-context:5.3.11'
+
+  testImplementation "org.mockito:mockito-core:3.+"
+  testImplementation platform("io.cucumber:cucumber-bom:7.0.0")
+  testImplementation platform("org.junit:junit-bom:5.8.1")
+  testImplementation 'io.cucumber:cucumber-java'
+  testImplementation 'io.cucumber:cucumber-junit-platform-engine'
+  testImplementation 'org.junit.platform:junit-platform-suite'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.mockito:mockito-junit-jupiter:2.23.0'
+}
+
+configurations {
+    cucumberRuntime {
+        extendsFrom testImplementation
+    }
+}
+
+task cucumberCli() {
+    dependsOn assemble, testClasses
+    doLast {
+        javaexec {
+            main = "io.cucumber.core.cli.Main"
+            classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+            args = [
+              '--plugin', 'pretty',
+              '--plugin', 'html:target/cucumber-report.html',
+              '--glue', 'src/test/resources']
+        }
+    }
+}
+
+cucumber {
+    main = "io.cucumber.core.cli.Main"
+}
+
+// Configure PMD.
+pmd {
+    ignoreFailures = true
+    toolVersion = "6.23.0"                             // The version of PMD to use.
+    ruleSetFiles = files("config/pmd/pmd.xml")         // The location of the configuration file.
+    ruleSets = []                                      // Ignore the default rules. The ones this config
+                                                       // uses are set with the ruleSetFiles property.
+}
